@@ -2,181 +2,201 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>My Music</title>
+<title>MST Music</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="manifest" href="manifest.json">
 
 <style>
 :root{
-  --bg:#121212;--card:#181818;--hover:#222;--green:#1db954;
+  --bg:#121212;
+  --card:#181818;
+  --hover:#242424;
+  --text:#ffffff;
+  --sub:#b3b3b3;
+  --green:#1db954;
 }
 *{box-sizing:border-box}
 body{
-  margin:0;background:var(--bg);color:#fff;
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial;
 }
-header{
-  padding:16px;font-size:22px;font-weight:800;
-  background:linear-gradient(180deg,var(--green),var(--bg));
+
+/* HEADER */
+.header{
+  padding:24px 16px;
+  background:linear-gradient(180deg,#1db95455,#121212);
 }
-.search{padding:12px}
+.header h1{
+  margin:0;
+  font-size:28px;
+  font-weight:800;
+}
+.header p{
+  margin:6px 0 0;
+  color:var(--sub);
+  font-size:14px;
+}
+
+/* SEARCH */
+.search{
+  padding:14px;
+}
 .search input{
-  width:100%;padding:14px 16px;border-radius:999px;
-  border:none;outline:none;font-size:16px;
+  width:100%;
+  padding:14px 18px;
+  border-radius:999px;
+  border:none;
+  outline:none;
+  background:#2a2a2a;
+  color:white;
+  font-size:16px;
 }
+
+/* GRID */
 .grid{
-  display:grid;gap:12px;padding:12px;
-  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:16px;
+  padding:16px;
 }
+
+/* CARD */
 .card{
-  background:var(--card);border-radius:14px;padding:10px;
-  cursor:pointer;transition:.2s;
+  background:var(--card);
+  border-radius:14px;
+  padding:12px;
+  cursor:pointer;
+  transition:.25s;
 }
-.card:hover{background:var(--hover)}
+.card:hover{
+  background:var(--hover);
+  transform:scale(1.03);
+}
 .card img{
-  width:100%;border-radius:10px;
+  width:100%;
+  aspect-ratio:1/1;
+  border-radius:10px;
 }
-.title{margin-top:6px;font-weight:600;font-size:14px}
-.artist{font-size:12px;color:#aaa}
-.badge{
-  font-size:10px;padding:2px 6px;border-radius:6px;
-  background:#333;color:#ccc;margin-left:6px;
+.card .title{
+  margin-top:10px;
+  font-size:15px;
+  font-weight:600;
 }
-.actions{
-  display:flex;gap:8px;margin-top:8px;
+.card .artist{
+  font-size:13px;
+  color:var(--sub);
 }
-.btn{
-  flex:1;text-align:center;font-size:12px;
-  padding:6px;border-radius:8px;background:#222;
-}
-.btn.yt{background:#2a2a2a}
 
+/* PLAYER */
 .player{
-  position:fixed;bottom:0;left:0;right:0;
-  background:#181818;padding:8px;border-top:1px solid #222;
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  background:#181818;
+  border-top:1px solid #2a2a2a;
+  padding:10px 12px;
 }
-.player audio{width:100%}
+.player .now{
+  font-size:13px;
+  color:var(--sub);
+  margin-bottom:4px;
+}
+.player audio{
+  width:100%;
+}
 
-.notice{
-  padding:8px 12px;font-size:12px;color:#aaa;
-}
-.yt-wrap{
-  display:none;padding:10px;background:#000;
-}
-.yt-wrap iframe{
-  width:100%;height:220px;border:0;border-radius:12px;
+/* STATUS */
+.status{
+  padding:0 16px;
+  font-size:13px;
+  color:var(--sub);
 }
 </style>
 </head>
 
 <body>
 
-<header>🎧 My Music</header>
+<div class="header">
+  <h1>🎧 MST Music</h1>
+  <p>Spotify-style • Only Music • Private</p>
+</div>
 
 <div class="search">
-  <input id="q" placeholder="Search songs, artists, words…"
-    onkeydown="if(event.key==='Enter')searchIA()">
+  <input id="q" placeholder="Search songs, artists…"
+   onkeydown="if(event.key==='Enter')searchMusic()">
 </div>
 
-<div id="note" class="notice"></div>
+<div id="status" class="status"></div>
 <div id="grid" class="grid"></div>
 
-<div id="yt" class="yt-wrap">
-  <iframe id="ytframe" allow="autoplay; encrypted-media"></iframe>
-</div>
-
 <div class="player">
+  <div id="now" class="now">Nothing playing</div>
   <audio id="audio" controls></audio>
 </div>
 
 <script>
-const grid = document.getElementById('grid');
-const audio = document.getElementById('audio');
-const note = document.getElementById('note');
-const yt = document.getElementById('yt');
-const ytframe = document.getElementById('ytframe');
+/* BACKEND */
+const BACKEND_URL = "https://mst-op-1.onrender.com";
 
-let searching = false;
+const grid = document.getElementById("grid");
+const audio = document.getElementById("audio");
+const statusBox = document.getElementById("status");
+const nowBox = document.getElementById("now");
 
-async function searchIA(){
-  if(searching) return;
-  searching = true;
+async function searchMusic(){
+  const q = document.getElementById("q").value.trim();
+  if(!q) return;
 
-  const q = document.getElementById('q').value.trim();
-  if(!q){ searching=false; return; }
-
-  grid.innerHTML = '';
-  yt.style.display='none';
-  audio.pause(); audio.src='';
-  note.textContent = 'Searching (low data mode)…';
-
-  const url =
-`https://archive.org/advancedsearch.php?q=mediatype:audio AND (title:(${q}) OR creator:(${q}) OR description:(${q}))&fl[]=identifier,title,creator&rows=15&output=json`;
+  grid.innerHTML="";
+  audio.pause(); audio.src="";
+  statusBox.textContent="Searching…";
 
   try{
-    const r = await fetch(url);
-    const j = await r.json();
+    const res = await fetch(`${BACKEND_URL}/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
 
-    if(j.response.docs.length){
-      note.textContent = 'Results from Internet Archive';
-      j.response.docs.forEach(d => addCard(d, q));
-    }else{
-      note.textContent = 'No IA result. YouTube option available.';
-      addYTButton(q);
+    if(!data.length){
+      statusBox.textContent="No results found";
+      return;
     }
-  }catch{
-    note.textContent = 'Network issue. YouTube option available.';
-    addYTButton(q);
-  }
 
-  searching = false;
+    statusBox.textContent="Tap a song to play";
+    data.forEach(song=>createCard(song));
+
+  }catch{
+    statusBox.textContent="Backend offline";
+  }
 }
 
-function addCard(d, q){
-  const c = document.createElement('div');
-  c.className='card';
+function createCard(song){
+  const c=document.createElement("div");
+  c.className="card";
   c.innerHTML=`
-    <img loading="lazy" src="https://archive.org/services/img/${d.identifier}">
-    <div class="title">${escape(d.title)} <span class="badge">IA</span></div>
-    <div class="artist">${escape(d.creator||'Unknown')}</div>
-    <div class="actions">
-      <div class="btn" onclick="playIA('${d.identifier}')">Play</div>
-      <div class="btn yt" onclick="openYT('${q}')">YT</div>
-    </div>`;
+    <img src="${song.thumb}">
+    <div class="title">${escapeHTML(song.title)}</div>
+    <div class="artist">${escapeHTML(song.artist)}</div>
+  `;
+  c.onclick=()=>playSong(song.videoId,song.title,song.artist);
   grid.appendChild(c);
 }
 
-async function playIA(id){
-  yt.style.display='none';
-  const r = await fetch(`https://archive.org/metadata/${id}`);
-  const j = await r.json();
-  const f = j.files.find(x =>
-    x.name.endsWith('.mp3') || x.name.endsWith('.ogg') || x.name.endsWith('.m4a')
-  );
-  if(!f){ alert('No playable audio'); return; }
-  audio.src = `https://archive.org/download/${id}/${encodeURIComponent(f.name)}`;
-  audio.play();
+async function playSong(videoId,title,artist){
+  nowBox.textContent="Loading…";
+  try{
+    const res=await fetch(`${BACKEND_URL}/stream?videoId=${videoId}`);
+    const data=await res.json();
+    audio.src=data.url;
+    audio.play();
+    nowBox.textContent=`${title} • ${artist}`;
+  }catch{
+    nowBox.textContent="Playback error";
+  }
 }
 
-function addYTButton(q){
-  grid.innerHTML=`
-    <div class="card">
-      <div class="title">Search on YouTube Music</div>
-      <div class="artist">Manual play (low data)</div>
-      <div class="actions">
-        <div class="btn yt" onclick="openYT('${q}')">Open</div>
-      </div>
-    </div>`;
-}
-
-function openYT(q){
-  yt.style.display='block';
-  ytframe.src =
-    `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(q)}`;
-}
-
-function escape(s){
-  return String(s).replace(/[&<>"']/g,m=>(
+function escapeHTML(str){
+  return String(str).replace(/[&<>"']/g,m=>(
     {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
   ));
 }
