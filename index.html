@@ -119,13 +119,14 @@ body{
 <body>
 
 <div class="header">
-  <h1>🎧 MST Music</h1>
-  <p>Spotify-style • Only Music • Private</p>
+  <h1>🎧Lakshit Music</h1>
+  <p>Spotify-style • Only Music • Fast</p>
 </div>
 
 <div class="search">
-  <input id="q" placeholder="Search songs, artists…"
-   onkeydown="if(event.key==='Enter')searchMusic()">
+  <input id="q"
+    placeholder="Search songs, artists…"
+    oninput="debounceSearch()">
 </div>
 
 <div id="status" class="status"></div>
@@ -137,20 +138,26 @@ body{
 </div>
 
 <script>
-/* BACKEND */
-const BACKEND_URL = "https://mst-op-1.onrender.com";
+/* 🔥 FINAL BACKEND */
+const BACKEND_URL = "https://final-music.onrender.com";
 
+let searchTimer;
 const grid = document.getElementById("grid");
 const audio = document.getElementById("audio");
 const statusBox = document.getElementById("status");
 const nowBox = document.getElementById("now");
+
+/* Smooth search */
+function debounceSearch(){
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(searchMusic, 350);
+}
 
 async function searchMusic(){
   const q = document.getElementById("q").value.trim();
   if(!q) return;
 
   grid.innerHTML="";
-  audio.pause(); audio.src="";
   statusBox.textContent="Searching…";
 
   try{
@@ -158,47 +165,33 @@ async function searchMusic(){
     const data = await res.json();
 
     if(!data.length){
-      statusBox.textContent="No results found";
+      statusBox.textContent="No results";
       return;
     }
 
     statusBox.textContent="Tap a song to play";
-    data.forEach(song=>createCard(song));
+    data.forEach(song => {
+      const c = document.createElement("div");
+      c.className="card";
+      c.innerHTML=`
+        <img loading="lazy" src="${song.thumb}">
+        <div class="title">${song.title}</div>
+        <div class="artist">${song.artist}</div>
+      `;
+      c.onclick=()=>playSong(song.videoId, song.title, song.artist);
+      grid.appendChild(c);
+    });
 
   }catch{
-    statusBox.textContent="Backend offline";
+    statusBox.textContent="Backend error";
   }
 }
 
-function createCard(song){
-  const c=document.createElement("div");
-  c.className="card";
-  c.innerHTML=`
-    <img src="${song.thumb}">
-    <div class="title">${escapeHTML(song.title)}</div>
-    <div class="artist">${escapeHTML(song.artist)}</div>
-  `;
-  c.onclick=()=>playSong(song.videoId,song.title,song.artist);
-  grid.appendChild(c);
-}
-
-async function playSong(videoId,title,artist){
-  nowBox.textContent="Loading…";
-  try{
-    const res=await fetch(`${BACKEND_URL}/stream?videoId=${videoId}`);
-    const data=await res.json();
-    audio.src=data.url;
-    audio.play();
-    nowBox.textContent=`${title} • ${artist}`;
-  }catch{
-    nowBox.textContent="Playback error";
-  }
-}
-
-function escapeHTML(str){
-  return String(str).replace(/[&<>"']/g,m=>(
-    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
-  ));
+/* 🔥 FAST PLAY (NO FETCH, NO CORS ISSUE) */
+function playSong(videoId, title, artist){
+  nowBox.textContent=`▶ ${title} • ${artist}`;
+  audio.src = `${BACKEND_URL}/play?videoId=${videoId}`;
+  audio.play();
 }
 </script>
 
