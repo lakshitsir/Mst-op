@@ -10,7 +10,10 @@ ytmusic = YTMusic()
 
 @app.route("/")
 def home():
-    return {"status": "OK", "message": "Music backend running"}
+    return {
+        "status": "OK",
+        "message": "Music backend running"
+    }
 
 @app.route("/search")
 def search():
