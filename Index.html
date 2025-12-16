@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Music</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body style="background:#121212;color:white;font-family:sans-serif">
+
+<h2>🎵 My Music Player</h2>
+
+<input id="q" placeholder="Search song..." />
+<button onclick="search()">Search</button>
+
+<ul id="list"></ul>
+
+<audio id="player" controls style="width:100%"></audio>
+
+<script>
+async function search() {
+  let q = document.getElementById("q").value;
+  let res = await fetch(
+    `https://archive.org/advancedsearch.php?q=${q}&fl[]=identifier,title&rows=10&page=1&output=json`
+  );
+  let data = await res.json();
+  let list = document.getElementById("list");
+  list.innerHTML = "";
+  data.response.docs.forEach(d => {
+    let li = document.createElement("li");
+    li.innerText = d.title;
+    li.onclick = () => play(d.identifier);
+    list.appendChild(li);
+  });
+}
+
+async function play(id) {
+  let res = await fetch(`https://archive.org/metadata/${id}`);
+  let data = await res.json();
+  let file = data.files.find(f => f.name.endsWith(".mp3"));
+  if (!file) return alert("No audio");
+  document.getElementById("player").src =
+    `https://archive.org/download/${id}/${file.name}`;
+}
+</script>
+
+</body>
+</html>
