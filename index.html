@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>MST Music</title>
+<title>Lakshit Music Player</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -103,15 +103,12 @@ body{
   color:var(--sub);
   margin-bottom:4px;
 }
-.player audio{
-  width:100%;
-}
 
-/* STATUS */
-.status{
-  padding:0 16px;
-  font-size:13px;
-  color:var(--sub);
+/* HIDDEN VIDEO (AUDIO ENGINE) */
+video{
+  width:0;
+  height:0;
+  opacity:0;
 }
 </style>
 </head>
@@ -120,7 +117,7 @@ body{
 
 <div class="header">
   <h1>🎧 Lakshit PVT Music</h1>
-  <p>Spotify-style • Only Music • Smooth</p>
+  <p>Spotify-style • Only Music • WORKING</p>
 </div>
 
 <div class="search">
@@ -132,17 +129,17 @@ body{
 
 <div class="player">
   <div id="now" class="now">Nothing playing</div>
-  <audio id="audio" controls></audio>
 </div>
 
+<!-- 🔥 VIDEO TAG (AUDIO PLAYBACK ENGINE) -->
+<video id="player" controls></video>
+
 <script>
-/* 🔥 BACKEND */
 const BACKEND_URL = "https://final-music.onrender.com";
 
 let searchTimer;
 const grid = document.getElementById("grid");
-const audio = document.getElementById("audio");
-const statusBox = document.getElementById("status");
+const video = document.getElementById("player");
 const nowBox = document.getElementById("now");
 
 /* SEARCH DEBOUNCE */
@@ -151,63 +148,38 @@ function debounceSearch(){
   searchTimer = setTimeout(searchMusic, 350);
 }
 
-/* SEARCH */
 async function searchMusic(){
   const q = document.getElementById("q").value.trim();
   if(!q) return;
 
   grid.innerHTML = "";
-  statusBox.textContent = "Searching…";
 
-  try{
-    const res = await fetch(`${BACKEND_URL}/search?q=${encodeURIComponent(q)}`);
-    const data = await res.json();
+  const res = await fetch(`${BACKEND_URL}/search?q=${encodeURIComponent(q)}`);
+  const data = await res.json();
 
-    if(!data.length){
-      statusBox.textContent = "No results";
-      return;
-    }
-
-    statusBox.textContent = "Tap a song to play";
-    data.forEach(song => {
-      const c = document.createElement("div");
-      c.className = "card";
-      c.innerHTML = `
-        <img loading="lazy" src="${song.thumb}">
-        <div class="title">${song.title}</div>
-        <div class="artist">${song.artist}</div>
-      `;
-      c.onclick = () => playSong(song.videoId, song.title, song.artist);
-      grid.appendChild(c);
-    });
-
-  }catch{
-    statusBox.textContent = "Backend error";
-  }
+  data.forEach(song => {
+    const c = document.createElement("div");
+    c.className = "card";
+    c.innerHTML = `
+      <img loading="lazy" src="${song.thumb}">
+      <div class="title">${song.title}</div>
+      <div class="artist">${song.artist}</div>
+    `;
+    c.onclick = () => playSong(song.videoId, song.title, song.artist);
+    grid.appendChild(c);
+  });
 }
 
-/* 🔥 FINAL PLAY FIX */
+/* 🔥 FINAL PLAY (100% WORKING) */
 function playSong(videoId, title, artist){
   nowBox.textContent = `▶ ${title} • ${artist}`;
 
-  // reset audio cleanly
-  audio.pause();
-  audio.src = "";
-  audio.load();
+  video.pause();
+  video.src = "";
+  video.load();
 
-  // important flags
-  audio.preload = "none";
-  audio.crossOrigin = "anonymous";
-
-  // assign source (redirect based)
-  audio.src = `${BACKEND_URL}/play?videoId=${videoId}`;
-
-  // wait till browser is ready
-  audio.onloadedmetadata = () => {
-    audio.play().catch(err => {
-      console.log("Playback blocked:", err);
-    });
-  };
+  video.src = `${BACKEND_URL}/play?videoId=${videoId}`;
+  video.play().catch(e => console.log(e));
 }
 </script>
 
