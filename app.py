@@ -1,54 +1,62 @@
-from fastapi import FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from ytmusicapi import YTMusic
 import yt_dlp
 
-app = FastAPI()
+def create_app():
+    app = Flask(__name__)
+    CORS(app)
 
-# CORS (GitHub Pages ke liye)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    ytmusic = YTMusic()
 
-ytmusic = YTMusic()
-
-@app.get("/")
-def home():
-    return {"status": "OK", "message": "Music backend running"}
-
-# 🔍 SEARCH API
-@app.get("/search")
-def search(q: str = Query(..., min_length=1)):
-    results = ytmusic.search(q, filter="songs", limit=10)
-    data = []
-    for r in results:
-        data.append({
-            "title": r.get("title"),
-            "artist": r["artists"][0]["name"] if r.get("artists") else "Unknown",
-            "videoId": r.get("videoId"),
-            "thumb": r["thumbnails"][-1]["url"] if r.get("thumbnails") else ""
+    @app.route("/")
+    def home():
+        return jsonify({
+            "status": "OK",
+            "message": "app.py is running"
         })
-    return data
 
-# ▶️ STREAM API (audio only)
-@app.get("/stream")
-def stream(videoId: str):
-    ydl_opts = {
-        "format": "bestaudio",
-        "quiet": True,
-        "noplaylist": True,
-        "skip_download": True,
-    }
+    @app.route("/search")
+    def search():
+        q = request.args.get("q", "").strip()
+        if not q:
+            return jsonify([])
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(
-            f"https://music.youtube.com/watch?v={videoId}",
-            download=False
-        )
-        return {
-            "url": info["url"],
-            "title": info.get("title")
+        results = ytmusic.search(q, filter="songs", limit=10)
+        data = []
+
+        for r in results:
+            data.append({
+                "title": r.get("title"),
+                "artist": r["artists"][0]["name"] if r.get("artists") else "Unknown",
+                "videoId": r.get("videoId"),
+                "thumb": r["thumbnails"][-1]["url"] if r.get("thumbnails") else ""
+            })
+
+        return jsonify(data)
+
+    @app.route("/stream")
+    def stream():
+        videoId = request.args.get("videoId")
+        if not videoId:
+            return jsonify({"error": "videoId missing"})
+
+        ydl_opts = {
+            "format": "bestaudio",
+            "quiet": True,
+            "noplaylist": True,
+            "skip_download": True
         }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(
+                f"https://music.youtube.com/watch?v={videoId}",
+                download=False
+            )
+
+        return jsonify({
+            "title": info.get("title"),
+            "url": info["url"]
+        })
+
+    return app
